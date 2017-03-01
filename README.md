@@ -1,8 +1,8 @@
 # 1.13_whats_new
 
-text
+uruchomienie dockera 
 
-'''
-bash
-'''
+```
+docker run 
+```
 
