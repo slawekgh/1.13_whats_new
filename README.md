@@ -272,3 +272,38 @@ Jak widać powyżej obraz zbudowany z opcją squash składa się już tylko z 2 
 (ten missing to zupełnie normalna sprawa) 
 
 
+##Docker metrics in Prometheus format
+
+TL;DR: zamiast używać cadvisora można teraz wykorzystać mechanizmy wbudowane w docker engine.
+
+
+Prometeusz czyli celebryta wśród systemów monitoringu robi zawrotną karierę i każdy dzisiaj chce mieć co najmniej jednego exportera. Obecna lista konektorów przysparza o ból głowy i wkrótce zapewne lodówki, pralki czy drzwi od stodoły będą miały URI="/metrics". Na dzień dzisiejszy rozpoznanie nowego softu można ograniczyć do sprawdzenia resta jakiego wystawia, można również dowolne rozwiązania od razu skreślić i skrytykować za brak exportera. 
+
+Jak wiadomo już wieki temu do exportowania metryk w świecie dockera służył tandem cAdvisor + node exporter. Oczywiście żaden z nich nie pochodzi z fabryki Docker więc _koniecznie_musiano_ dostarczyć "markowy" odpowiednik. 
+
+Do systemd exec startu silnika poza flagą experimental dodajemy --metrics:
+
+```
+# cat /usr/lib/systemd/system/docker.service  | grep ExecStart
+ExecStart=/usr/bin/dockerd --experimental=true --metrics-addr=0.0.0.0:4999
+```
+
+Od tej pory na TCP/4999 wystawiany jest rest typu "prometeuszowy metrics" na którym mamy kilkadziesiąt statsów wprost z wnętrza silnika: 
+
+```
+# curl 0:4999/metrics 2>&1 | head 
+[...]
+# HELP engine_daemon_container_actions_seconds 
+
+The number of seconds it takes to process each container action
+# TYPE engine_daemon_container_actions_seconds histogram
+engine_daemon_container_actions_seconds_bucket{action="changes",le="0.005"} 1
+engine_daemon_container_actions_seconds_bucket{action="changes",le="0.01"} 1
+engine_daemon_container_actions_seconds_bucket{action="changes",le="0.025"} 1
+engine_daemon_container_actions_seconds_bucket{action="changes",le="0.05"} 1
+engine_daemon_container_actions_seconds_bucket{action="changes",le="0.1"} 1
+engine_daemon_container_actions_seconds_bucket{action="changes",le="0.25"} 1
+```
+
+Czy to zagrosi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jest jego tato :-) 
+
