@@ -42,7 +42,10 @@ Server:
 
 ## Docker service logs
 
-To jedna z pierwszych nowości jakie omówimy , czy jej wprowadzenie było niezbędne może być dyskusyjne - zawsze można był zainstalować logspouta w trybie swarm global osiągając ten sam efekt. Docker słynie jednak z zastępowania rozwiązań firm trzecich swoimi własnymi odpowiednikami. 
+To jedna z pierwszych nowości jakie omówimy , czy jej wprowadzenie było niezbędne można dyskutować - zawsze można było zainstalować przecież logspouta w trybie swarm global osiągając ten sam efekt. Docker słynie jednak z zastępowania rozwiązań firm trzecich swoimi własnymi odpowiednikami (ubik?). 
+
+
+
 
 Aby skorzystać z docker service logs tworzymy 4 kontenerowy service którego zadaniem jest logowanie hostname na wyjście:
 
