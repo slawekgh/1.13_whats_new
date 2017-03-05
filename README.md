@@ -159,3 +159,116 @@ No. It only reads logs from the local machine. You'll need to run logspout on ev
 
 Oczywiście logspout ma konkurencję , nie wróżę świetlanej przyszłości przy takim podejściu 
 
+
+
+##Docker squash image layers
+
+Historycznie przypomnę pewien wątek ("Can't stack more than 42 aufs layers")
+https://github.com/docker/docker/issues/1171
+
+Niezależnie od tego czy problemy z ilością warstw dla różnych driverów są faktycznie problemami czy sztuczną barierą którą można zaniedbać mimo wszystko ekipa Dockera postanowiła dodać funkcjonalność spłaszczania obrazów. 
+
+Pokażmy najpierw klasyczne piętrowe obrazy na przykładzie - tworzymy Dockerfile który na gołym IMG=alpine buduje 3 warstwy:
+
+```
+# cat Dockerfile 
+FROM alpine
+RUN echo 1 > /plik
+RUN echo 2 >> /plik
+RUN echo 3 >> /plik
+```
+budujemy z tego arcydzieła obraz :
+
+```
+# docker build -t test_img_02 .
+```
+
+jak widać nie jest on zbyt płaski i zawiera każdą sekcję RUN w postaci 1 extra warstwy 
+
+
+```
+# docker history test_img_02
+IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT
+dcefa0bda16e        46 seconds ago      /bin/sh -c echo 3 >> /plik                      6 B                 
+258404afe6f5        47 seconds ago      /bin/sh -c echo 2 >> /plik                      4 B                 
+fc9880909684        48 seconds ago      /bin/sh -c echo 1 > /plik                       2 B                 
+88e169ea8f46        8 weeks ago         /bin/sh -c #(nop) ADD file:92ab746eb22dd3e...   3.98 MB             
+```
+
+
+inspect na obrazie również pokazuje 4 warstwy
+
+```
+# docker inspect test_img_02 | tail -10 
+            "Type": "layers",
+            "Layers": [
+                "sha256:60ab55d3379d47c1ba6b6225d59d10e1f52096ee9d5c816e42c635ccc57a5a2b",
+                "sha256:8f6a439091db9c676e931bf8da05add5fc01b644ad3325db5421c64a98574995",
+                "sha256:8f9aee109583484f37647d88277f4967514a52c3eef10c61a8fc5e154cb93df6",
+                "sha256:7b23033eb2828a85c392d5a59006c209ebc2b4fd63b2d61c31819493798feac4"
+            ]
+        }
+    }
+]
+```
+
+
+Jak widać każda linijka z Dockerfile jest reprezentowana przez oddzielną warstwę.
+Ten pierwszy layer ("sha256:60ab55d3379d47c1ba6b6225d59d10e1f52096ee9d5c816e42c635ccc57a5a2b") to oczywiście alpine:
+
+```
+# docker inspect alpine  | tail -10 
+            }
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:60ab55d3379d47c1ba6b6225d59d10e1f52096ee9d5c816e42c635ccc57a5a2b"
+```
+
+
+
+
+W 1.13.x aby nie robić wielu warstw wprowadzono opcję squash dla IMG:
+
+```
+# docker build --squash -t test_img_03 .
+```
+
+tym razem docker history pokazuje że warstw mamy dużo mniej:
+
+```
+# docker history test_img_03
+IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT
+2b4cfdfb143f        45 seconds ago                                                      6 B                 merge 
+
+sha256:dcefa0bda16ef2140bb8cd2a4b1a5eb2d5592d0e8ef3cc80693fe7447ac78103 to 
+
+sha256:88e169ea8f46ff0d0df784b1b254a15ecfaf045aee1856dca1ec242fdd231ddd
+<missing>           6 minutes ago       /bin/sh -c echo 3 >> /plik                      0 B                 
+<missing>           6 minutes ago       /bin/sh -c echo 2 >> /plik                      0 B                 
+<missing>           6 minutes ago       /bin/sh -c echo 1 > /plik                       0 B                 
+<missing>           8 weeks ago         /bin/sh -c #(nop) ADD file:92ab746eb22dd3e...   3.98 MB             
+```
+
+docker inspect również:
+
+```
+# docker inspect test_img_03 | tail -10 
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:60ab55d3379d47c1ba6b6225d59d10e1f52096ee9d5c816e42c635ccc57a5a2b",
+                "sha256:7b23033eb2828a85c392d5a59006c209ebc2b4fd63b2d61c31819493798feac4"
+            ]
+        }
+```
+
+
+
+Jak widać powyżej obraz zbudowany z opcją squash składa się już tylko z 2 warstw (pierwsza to parent image, druga to skompresowane następne 3 warstwy z deltą zmian - skompresowane do jednej) 
+
+(ten missing to zupełnie normalna sprawa) 
+
+
