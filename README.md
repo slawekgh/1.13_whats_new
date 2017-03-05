@@ -109,3 +109,55 @@ w8.3.o9qr3re09hwd@cent302    | 6c093ff89396
 w8.4.uv9ki5h7pngc@cent301    | 46f49b352012
 ```
 
+## Logspout - kompatybilność 
+
+Sprawdźmy wywołanego nieco wcześniej do tablicy logspouta. Skoro teoretycznie potrafi routować wszystkie logi na zewnątrz to 
+
+powinien poradzić sobie również z docker service logs. 
+
+Uruchamiamy logspouta:
+
+```
+docker run -d -v /var/run/docker.sock:/tmp/docker.sock --name logspout -e LOGSPOUT=ignore -e DEBUG=true --publish=8000:80 
+
+gliderlabs/logspout:master syslog://172.17.0.1:5000 
+```
+
+Obserwujemy listing zdarzeń jakie via REST wystawia kontener logspouta na TCP/8000 
+
+```
+curl 0:8000/logs
+```
+
+Na drugim terminalu tworzymy 4 kontenerowy serwis (w5) którego jedyną funkcją jest pisanie na STDOUT :
+
+```
+# docker service  ps w5 
+ID            NAME  IMAGE          NODE     DESIRED STATE  CURRENT STATE          ERROR  PORTS
+mxcem2viifbw  w5.1  alpine:latest  cent503  Running        Running 7 seconds ago         
+bl4s0ux9f30a  w5.2  alpine:latest  cent503  Running        Running 7 seconds ago         
+qcw3pcux3iyc  w5.3  alpine:latest  cent502  Running        Running 8 seconds ago         
+yvbebbsmkdew  w5.4  alpine:latest  cent501  Running        Running 8 seconds ago    
+```
+
+
+niestety logspout uruchomiony na node=cent501 zbiera logi tylko z kontenera uruchomionego na cent501:
+
+```
+w5.4.yvbebbsmkdewlafbf9s05knsz|7ba88f114552
+w5.4.yvbebbsmkdewlafbf9s05knsz|7ba88f114552
+w5.4.yvbebbsmkdewlafbf9s05knsz|7ba88f114552
+w5.4.yvbebbsmkdewlafbf9s05knsz|7ba88f114552
+```
+
+równocześnie inny logspout odpalony na node=cent503 (gdzie są 2 kontenery) pokazuje logi tylko z tych 2 kontenerów
+
+
+Niestety Issue z pytaniem czy logspout planuje fixa aby zbierać logi ze swarm service logs:
+https://github.com/gliderlabs/logspout/issues/271
+
+zamknęli z komentarzem:
+No. It only reads logs from the local machine. You'll need to run logspout on every system in your swarm cluster.
+
+Oczywiście logspout ma konkurencję , nie wróżę świetlanej przyszłości przy takim podejściu 
+
