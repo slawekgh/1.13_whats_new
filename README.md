@@ -157,7 +157,7 @@ https://github.com/gliderlabs/logspout/issues/271
 zamknęli z komentarzem:
 No. It only reads logs from the local machine. You'll need to run logspout on every system in your swarm cluster.
 
-Oczywiście logspout ma konkurencję , nie wróżę świetlanej przyszłości przy takim podejściu, była kiedyś taka marka SAAB. 
+Oczywiście logspout ma konkurencję , nie wróżę świetlanej przyszłości przy takim podejściu, była kiedyś taka marka SAAB :-) ... 
 
 
 
@@ -305,5 +305,5 @@ engine_daemon_container_actions_seconds_bucket{action="changes",le="0.1"} 1
 engine_daemon_container_actions_seconds_bucket{action="changes",le="0.25"} 1
 ```
 
-Czy to zagrosi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jest jego ojciec :-) 
+Czy to zagrosi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jest jego ojciec i że ten ojciec z dockerem się chyba nie lubi lub za chwilę pokaże konkurencyjne kontenery :-) 
 
