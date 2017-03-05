@@ -309,6 +309,7 @@ Czy to zagrosi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jes
 
 
 
+
 ## User Experience i porządki w API 
 
 Dbając o czystość, spójność i przejrzystość dokonano kluczowych zmian w API. Z grubsza chodzi o to żeby wprowadzić w miarę takie same polecenia do kontenerów jak i obrazów itd. Mi tam akurat nie przeszkadzało że nie ma spójnej wizji i jest ogólny chlew (co nawet miało swój urok) no ale ktoś zdecydował że trzeba zrobić porządek. Ja natomiast omówię tu nowe przydatne API - docker system 
@@ -322,7 +323,9 @@ Commands:
   prune       Remove unused data
 ```
 
-### zacznijmy od "df", odpalamy kontener:
+### docker system df 
+
+zacznijmy od "df", odpalamy kontener:
 
 
 ```
@@ -385,7 +388,8 @@ f08a3b5b8b0ac37b8301eabfe7a3c26cfb63f783fb13df46b086165d19292c31   1            
 ```
 
 
-### PRUNE
+### docker system prune 
+
 
 stopujemy obydwa kontenery i wykonujemy docker system prune 
 
@@ -426,4 +430,5 @@ WARNING! This will remove all dangling images.
 Are you sure you want to continue? [y/N] y
 Total reclaimed space: 0 B
 ```
+
 
