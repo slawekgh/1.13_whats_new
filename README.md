@@ -307,3 +307,123 @@ engine_daemon_container_actions_seconds_bucket{action="changes",le="0.25"} 1
 
 Czy to zagrosi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jest jego ojciec i że ten ojciec z dockerem się chyba nie lubi lub za chwilę pokaże konkurencyjne kontenery :-) 
 
+
+
+## User Experience i porządki w API 
+
+Dbając o czystość, spójność i przejrzystość dokonano kluczowych zmian w API. Z grubsza chodzi o to żeby wprowadzić w miarę takie same polecenia do kontenerów jak i obrazów itd. Mi tam akurat nie przeszkadzało że nie ma spójnej wizji i jest ogólny chlew (co nawet miało swój urok) no ale ktoś zdecydował że trzeba zrobić porządek. Ja natomiast omówię tu nowe przydatne API - docker system 
+
+```
+docker system:
+Commands:
+  df          Show docker disk usage
+  events      Get real time events from the server
+  info        Display system-wide information
+  prune       Remove unused data
+```
+
+### zacznijmy od "df", odpalamy kontener:
+
+
+```
+docker run -tdi ubuntu:14.04
+```
+
+potem kontener z volumenem, w środku generacja danych 4 MB :
+
+```
+docker run -ti -v /dane --name=test_alpine01 alpine sh 
+/ # dd if=/dev/zero of=/dane/PLIK bs=4k  count=1000
+```
+
+
+docker system df pokaże nam wszystko co narobiliśmy:
+
+```
+# docker system df
+TYPE                TOTAL               ACTIVE              SIZE                RECLAIMABLE
+Images              2                   2                   191.9 MB            0 B (0%)
+Containers          2                   2                   384 B               384 B (100%)
+Local Volumes       1                   1                   4.096 MB            0 B (0%)
+```
+
+
+
+wersja bardziej szczegółowa:
+
+```
+# docker system df -v 
+Images space usage:
+
+REPOSITORY          TAG                 IMAGE ID            CREATED             SIZE                SHARED SIZE         UNIQUE 
+
+SIZE         CONTAINERS
+ubuntu              14.04               b969ab9f929b        5 weeks ago         187.9 MB            0 B                 187.9 
+
+MB            1
+alpine              latest              88e169ea8f46        2 months ago        3.98 MB             0 B                 3.98 MB 
+
+            1
+
+
+Containers space usage:
+
+CONTAINER ID        IMAGE               COMMAND             LOCAL VOLUMES       SIZE                CREATED             STATUS  
+
+            NAMES
+e9945a3a28cd        alpine              "sh"                1                   96 B                33 seconds ago      Up 31 
+
+seconds       test_alpine01
+4639e2890fb2        ubuntu:14.04        "/bin/bash"         0                   0 B                 33 seconds ago      Up 31 
+
+seconds       cranky_clarke
+
+Local Volumes space usage:
+
+VOLUME NAME                                                        LINKS               SIZE
+f08a3b5b8b0ac37b8301eabfe7a3c26cfb63f783fb13df46b086165d19292c31   1                   4.096 MB
+```
+
+
+### PRUNE
+
+stopujemy obydwa kontenery i wykonujemy docker system prune 
+
+```
+# docker system prune
+WARNING! This will remove:
+- all stopped containers
+- all volumes not used by at least one container
+- all networks not used by at least one container
+- all dangling images
+Are you sure you want to continue? [y/N] y
+Deleted Containers:
+e9945a3a28cd6f088fe8d9ed3e30cb3225f3440dbf13434605fcf42ef959ba4f
+4639e2890fb2d708447b317830247e48a8ca5f80d5521835d587ea5c84ebc437
+
+Deleted Volumes:
+f08a3b5b8b0ac37b8301eabfe7a3c26cfb63f783fb13df46b086165d19292c31
+
+Total reclaimed space: 4.096 MB
+```
+
+Poza szeroko działającym system prune są jeszcze 3 polecenia bardziej szczegółowe:
+
+
+```
+# docker container prune 
+WARNING! This will remove all stopped containers.
+Are you sure you want to continue? [y/N] y
+Total reclaimed space: 0 B
+
+# docker volume prune
+WARNING! This will remove all volumes not used by at least one container.
+Are you sure you want to continue? [y/N] y
+Total reclaimed space: 0 B
+
+# docker image prune 
+WARNING! This will remove all dangling images.
+Are you sure you want to continue? [y/N] y
+Total reclaimed space: 0 B
+```
+
