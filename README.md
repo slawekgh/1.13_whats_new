@@ -111,9 +111,7 @@ w8.4.uv9ki5h7pngc@cent301    | 46f49b352012
 
 ## Logspout - kompatybilność 
 
-Sprawdźmy wywołanego nieco wcześniej do tablicy logspouta. Skoro teoretycznie potrafi routować wszystkie logi na zewnątrz to 
-
-powinien poradzić sobie również z docker service logs. 
+Sprawdźmy wywołanego nieco wcześniej do tablicy logspouta. Skoro teoretycznie potrafi routować wszystkie logi na zewnątrz to powinien poradzić sobie również z docker service logs. 
 
 Uruchamiamy logspouta:
 
