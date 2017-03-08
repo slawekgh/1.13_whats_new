@@ -803,7 +803,7 @@ w skrócie i dla uproszczenia możemy wszystkie powyższe dane traktować jako h
 
 Oto wszystkie znane mi metody trzymania danych wrażliwych w świecie dockera:
 
-### na etapie budowania obrazu 
+### a) na etapie budowania obrazu 
 
 niebezpiecznie prosty ale dosyć słaby pomysł:
 - zmiana hasła oznacza zmianę pracującego obrazu (czyli wymianę kontenerów) 
@@ -811,31 +811,31 @@ niebezpiecznie prosty ale dosyć słaby pomysł:
 - nie da się opublikować Dockerfile (bo widać nasze hasło) 
 
 
-### na etapie uruchamiania kontenera - zmiennymi środowiskowymi 
+### b) na etapie uruchamiania kontenera - zmiennymi środowiskowymi 
 
 zaletą jest zgodność z 12-factors app ale niestety hasła widać w docker ps i docker inspect 
 dostęp do zmiennych ENV mają kontenery zlinkowane i child-procesy itd itp 
 
 
-### na etapie uruchamiania kontenera - montowaniem volumenów typu "/hasła"
+### c) na etapie uruchamiania kontenera - montowaniem volumenów typu "/hasła"
 
 Niestety tutaj trzeba mieć na każdym węźle swarma przygotowane aktualne dane w filesystemie "/hasła".
 Trzeba mieć zatem jakiś mechanizm dbający o aktualność i synchronizację danych w tym katalogu (scaleio? rexray? gpfs? gluster? nfs? świętej pamięci flocker? ) . 
 Zarządzanie zawartością katalogu "/hasła" może (ale nie musi) okazać się trudnym procesem 
 
 
-### po uruchomieniu kontenera rekonfigurując środowiska jakimś automatem (np. ansible) 
+### d) po uruchomieniu kontenera rekonfigurując środowiska jakimś automatem (np. ansible) 
 
 Rozwiązanie działa tylko wtedy gdy procesy z sekcji CMD Dockerfile umieją działać bez haseł. 
 Mówiąc prościej - trudno wymagać od mysql aby wystartował i trzymał swoim procesem (mysqld) swój kontener przy życiu skoro hasło otrzyma od nas dopiero na etapie późniejszym. To rozwiązanie jest zatem nieco egzotyczne i sprawdza się tylko w niektórych  przypadkach ale jak już się sprawdzi to jest w miarę ok. 
 
 
-### secret-store (np Vault od Hashicorp albo Keywiz) 
+### e) secret-store (np Vault od Hashicorp albo Keywiz) 
 
 W sumie mimo wielu rekomendacji na rynku nie zdążyłem zabrać się za Vaulta bo nagle pojawił się docker secrets :-) 
 
 
-###  docker secrets 
+###  f) docker secrets 
 
 No i tu dochodzimy do sedna - Docker 1.13 wprowadza jedną z najbardziej wyczekiwanych funkcjonalności - zarządzanie hasłami (secrets Management) . Docker miłościwie pozwala nam trzymać nie tylko hasła ale i dane binarne (do 500kb) i różne stringi konfiguracyjne. 
 
