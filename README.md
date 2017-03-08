@@ -784,7 +784,7 @@ wbx7qfy0ortl  stack_03_www01.4      127.0.0.1:5000/apacz03:latest  cent502  Runn
 y5lzv3dpa40i   \_ stack_03_www01.4  127.0.0.1:5000/apacz02:latest  cent502  Shutdown       Shutdown 18 seconds ago                                        
 ```
 
-Jak widać wszystko zgodnie z naszymi założeniami - swarm podmienił IMG dla service z rewizji 2 na rewizję 3. Podczas update można było zaoserwować że update wykonywany jest porcjami w paczkach po 2 sztuki. 
+Jak widać wszystko zgodnie z naszymi założeniami - swarm podmienił IMG dla service z rewizji 2 na rewizję 3. Podczas update można było zaoserwować że update wykonywany jest porcjami (po 1 sztuce). 
 
 ## DOCKER SECRETS
 
