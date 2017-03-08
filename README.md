@@ -433,4 +433,132 @@ Are you sure you want to continue? [y/N] y
 Total reclaimed space: 0 B
 ```
 
+## Stack / Docker Compose / DAB 
+
+TL;DR: Wersja 1.13.x wprowadza wsparcie formatu docker-compose.yml do budowania stacków (już bez DAB) 
+
+A oto szczegóły:
+
+Jak pamiętamy docker-compose mógł obsługiwać swarma ale tylko do wersji 1.11. 
+
+Wraz z nadejściem swarm-mode (swarm wbudowany, od wersji 1.12) docker-compose przestał być wspieraną formą deploymentu usług na swarm i wg niektórych źródeł zaczał mieć nawet status depreciated. Jako następca i alternatywa dla docker-compose w środowisku swarm zaproponowano format DAB (“Distributed Application Bundle”)
+
+Jednocześnie wprowadzono pojęcie swarm docker stack. Celem usystematyzowania przypomnijmy jego definicję i funkcję:
+Stack to zbiór usług swarma składających się na środowisko aplikacyjne. 
+Stack umożliwia automatyzację instalacji wielu powiązanych ze sobą (zależnościami) serwisów swarma. 
+
+W hierarachi od dołu najpierw zatem mamy kontenery, potem swarm-service (jako zbiór N kontenerów rozpędzonych z jednego obrazu) a następnie na szczycie jest stack który z kolei jest zbiorem serwisów. 
+
+I teraz najważniejsze - Docker w 1.13 znacząco uproscił deployment wielowarstowych środowisk - teraz już nie trzeba używać do tego formatu DAB (który nie do końca wiadomo jaką ma przyszłość) ale wystrarczy do tego ceu używać starego formatu docker-compose.
+
+Jest to jeden z najważniejszych i kluczowych ficzerów w 1.13. 
+
+Dla niektórych wręcz jest to triumfalny i wyczekiwany powrót starego i lubianego formatu docker-compose.yml. Niektórzy idą jeszcze dalej ze spekulacjami i wieszczą naturalną śmierć formatu DAB.
+
+Celem przeprowadzenia LABu tworzymy obraz z którego będziemy rozpędzać kontenery serwujące swój numer rewizji i hostname na porcie 80.
+
+oto Dockerfile:
+
+```
+FROM ubuntu:14.04
+RUN apt-get -y update && apt-get install -y apache2 && apt-get install -y dnsutils && apt-get install -y curl
+CMD apachectl start && echo 1 > /var/www/html/index.html && hostname >> /var/www/html/index.html ; tail -f /dev/null
+```
+budujemy:
+
+```
+docker build -t apacz01 . 
+```
+
+tak zbudowany obraz dystrybuujemy na wszystkie węzły swarma (np via docker save , scp , docker load) 
+
+
+Oto bardzo prosty docker-compose-v3 który uruchomi swarm service oparty o nasz IMG:
+
+```
+# cat docker-compose.yml 
+version: "3"
+
+services:
+
+  web04:
+    image: apacz01
+    ports:
+      - "9004:80"
+    deploy:
+      replicas: 2
+```
+
+
+
+robimy deploy stacka nową metodą:
+
+```
+# docker stack deploy --compose-file docker-compose.yml stack_01
+Creating network stack_01_default
+Creating service stack_01_web04
+```
+
+jak widać nasza 2 kontenerowa usługa wstała :
+
+```
+# docker service  ls
+ID            NAME            MODE        REPLICAS  IMAGE
+yjzaowkmrnbb  stack_01_web04  replicated  2/2       apacz01
+
+
+# docker service ps stack_01_web04 
+ID            NAME              IMAGE     NODE     DESIRED STATE  CURRENT STATE          ERROR  PORTS
+twjbod862ybu  stack_01_web04.1  apacz01  cent503  Running        Running 8 seconds ago         
+vh5w1guhkgl8  stack_01_web04.2  apacz01  cent501  Running        Running 9 seconds ago         
+```
+
+a nawet działa ingresowo-ipvs'owy load-balancing (zwraca raz jeden raz drugi kontener) :
+
+```
+# curl 0:9004
+534c4c112613
+# curl 0:9004
+27d441d1a697
+# curl 0:9004
+534c4c112613
+```
+
+
+Listing stacków pracujących na swarmie:
+
+```
+# docker stack ls
+NAME      SERVICES
+stack_01  1
+```
+
+Listing kontenerów pracujących w stacku:
+
+```
+# docker stack ps stack_01 
+ID            NAME              IMAGE     NODE     DESIRED STATE  CURRENT STATE          ERROR  PORTS
+twjbod862ybu  stack_01_web04.1  apacz01  cent503  Running        Running 3 minutes ago         
+vh5w1guhkgl8  stack_01_web04.2  apacz01  cent501  Running        Running 3 minutes ago         
+```
+
+Listing serviców pracujących w stacku:
+
+```
+# docker stack services stack_01 
+ID            NAME            MODE        REPLICAS  IMAGE
+yjzaowkmrnbb  stack_01_web04  replicated  2/2       apacz01
+```
+
+
+warto zauważyć że sieć typu overlay (o nazwie stack_01_default) została dociągnięta TYLKO do tych węzłów swarma na których są kontenery usługi (jak to w SDN zwykło działać) 
+
+Na koniec usuwamy stack :
+
+```
+# docker stack  rm stack_01 
+Removing service stack_01_web04
+Removing network stack_01_default
+```
+
 
