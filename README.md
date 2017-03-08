@@ -837,9 +837,9 @@ W sumie mimo wielu rekomendacji na rynku nie zdążyłem zabrać się za Vaulta 
 
 ###  f) docker secrets 
 
-No i tu dochodzimy do sedna - Docker 1.13 wprowadza jedną z najbardziej wyczekiwanych funkcjonalności - zarządzanie hasłami (secrets Management) . Docker miłościwie pozwala nam trzymać nie tylko hasła ale i dane binarne (do 500kb) i różne stringi konfiguracyjne. 
+No i tu dochodzimy do sedna - Docker 1.13 wprowadza jedną z najbardziej wyczekiwanych funkcjonalności - zarządzanie hasłami (secrets Management) . Docker miłościwie pozwala nam trzymać nie tylko hasła ale i dane binarne (do 500kb) oraz różne stringi konfiguracyjne. 
 
-Mechanizm Docker secrets jest jak na razie dostępny tylko w Swarmie więc jesli chcemy uruchamiać zwykłe kontenery trzebe je przekonwertować na usługi swarma. 
+Mechanizm Docker secrets jest jak na razie dostępny tylko w Swarmie więc jesli chcemy uruchamiać zwykłe kontenery trzeba je przekonwertować na usługi swarma. 
 
 A teraz w wielkim skrócie jak to działa - jeśli jakiemuś serwisowi nadamy dostęp do hasła to jego niezaszyfrowana postać jest dostępna w każdym kontenerze w pliku /run/secrets/[secret_name].  
 
