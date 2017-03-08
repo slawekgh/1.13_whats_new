@@ -841,8 +841,116 @@ No i tu dochodzimy do sedna - Docker 1.13 wprowadza jedną z najbardziej wyczeki
 
 Mechanizm Docker secrets jest jak na razie dostępny tylko w Swarmie więc jesli chcemy uruchamiać zwykłe kontenery trzebe je przekonwertować na usługi swarma. 
 
-A teraz w wielkim skrócie jak to działa:
+A teraz w wielkim skrócie jak to działa - jeśli jakiemuś serwisowi nadamy dostęp do hasła to jego niezaszyfrowana postać jest dostępna w każdym kontenerze w pliku /run/secrets/[secret_name].  
 
-Jeśli jakiemuś serwisowi nadamy dostęp do hasła to jego niezaszyfrowana postać jest dostępna w każdym kontenerze w pliku /run/secrets/[secret_name].  Warto podkreślić że /run/secrets to filesystem tmpfsowy, rezyduje w RAM (co będzie ważne przy usuwaniu haseł) .
+Warto podkreślić że /run/secrets to filesystem tmpfsowy, rezyduje w RAM (co będzie ważne przy usuwaniu haseł) .
+
+
+Najlepiej zaczać od realnego przykładu - tym razem LAB skonstruowany będzie na stacku Wordpressa (wiem że wordpress to mało oryginalny pomysł ale to pierwsze co przyszło mi do głowy jak zacząłem szukać środowiska które potrzebuje haseł do DB) :-) 
+
+Wordpress to jak wiadomo baza i aplikacja - 2 warstwy, późne lata 90'te. 
+
+Klasyczne uruchomienie via generic containers (dla pogrążenia tej metody tutaj jeszcze z zakazaną opcją --link): 
+
+```
+docker run --name my-mysql -e MYSQL_ROOT_PASSWORD=haslo123 -d mysql
+docker run --name my-wordpress --link my-mysql:mysql -e WORDPRESS_DB_PASSWORD=haslo123 -p 8080:80 -d wordpress
+```
+
+niestety hasła nieco widać:
+
+
+```
+# docker inspect my-mysql | grep haslo
+                "MYSQL_ROOT_PASSWORD=haslo123",
+# docker inspect my-wordpress | grep haslo
+                "WORDPRESS_DB_PASSWORD=haslo123",
+```
+
+
+Podobnie jest gdy wystartujemy stack wordpressa w formie swarm services: 
+
+```
+docker service create --name my_mysql --network=my_net -e MYSQL_ROOT_PASSWORD=haslo123 --replicas=1 mysql 
+
+docker service create --name my_wordpress --network my_net -e WORDPRESS_DB_PASSWORD=haslo123 -e WORDPRESS_DB_HOST=my_mysql --publish 8090:80 --replicas=1 wordpress
+```
+
+
+tu również (niezależnie na które węzły trafiły kontenery poszczególnych usług) widać hasła w docker inspect: 
+
+```
+# docker inspect e504b9f4c5fd | grep haslo
+                "WORDPRESS_DB_PASSWORD=haslo123",
+
+# docker inspect 37f8df6c1126 | grep haslo
+                "MYSQL_ROOT_PASSWORD=haslo123",
+```
+
+
+Zmieniamy zatem stack na nowy czyli z docker secrets:
+
+
+```
+# docker service rm my_mysql my_wordpress
+```
+
+Tworzymy secret: 
+
+```
+# echo "haslo123456" | docker secret create wordpress_secret -
+i9qnntxll4kl93k78qsx6zqke
+
+# docker secret ls
+ID                          NAME                CREATED             UPDATED
+i9qnntxll4kl93k78qsx6zqke   wordpress_secret    8 seconds ago       8 seconds ago
+```
+
+
+Tworzymy ponownie serwisy ale dodając im --secret oraz opcje czytania haseł do mysql z plików:
+
+```
+docker service create --name my_mysql --secret="wordpress_secret" --network=my_net -e MYSQL_ROOT_PASSWORD_FILE="/run/secrets/wordpress_secret"  --replicas=1 mysql 
+
+docker service create --name my_wordpress --secret="wordpress_secret" --network my_net -e WORDPRESS_DB_PASSWORD_FILE="/run/secrets/wordpress_secret" -e WORDPRESS_DB_HOST=my_mysql --publish 8090:80 --replicas=1 wordpress
+```
+
+I nagle docker inspect na kontenerach nie pokazuje już haseł :-) 
+
+
+Co tu zaszło ? (teraz będzie nudna teoria) 
+
+Gdy dodamy secret do swarma jest on wysyłany via TLS do swarm-managera który następnie zachowuje go w szyfrowanym logu RAFT . Log ten jest replikowany na pozostałe węzły swarma więc już po chwili wszyscy którzy powinni mają do niego dostęp - czyli głównie kontenery należące do serwisu który ma wykorzystywać nowy secret. Tak jak już wcześniej padło każdy potrzebujący kontener otrzymuje deszyfrowaną postać secretu w postaci pliku /run/secrets/[secret_name]. 
+
+Co ważne kiedy kontener przestaje być potrzebny (i ginie) wtedy zdeszyfrowane hasła są odmontowywane i usuwane z pamięci węzła. 
+
+Na koniec przykład rotacji (wymiany) hasła via docker service update:
+
+```
+docker service update --secret-rm stare_haslo --secret-add source=nowe_haslo,target=password NAZWA_SERVICE 
+```
+
+
+To w sumie by było na tyle, jeszcze 2 uwagi z relase notes ktore IMHO wymagają osobnego podkreślenia:
+
+w 1.13.0
+Deprecate MAINTAINER w Dockerfile 
+
+nie wiem po co ta zmiana i komu to przeszkadzało :-) 
+
+
+w 1.13.1
+```
+docker info  | grep -i storage 
+Storage Driver: overlay
+```
+powyższe zostawiam bez komentarza, osobiście często brakuje mi sił do warstw storage w świecie dockera 
+
+
+## Podsumowanie:
+Wiele rewolucji nie było (nie to co przepaść między 1.11 a 1.12) , raczej ewolucja i facelifting. 
+Cieszy fakt że wyłapano dużo braków funkcjonalnych i je załatano, dobrze też że liczył się bardzo głos użytkowników. 
+Zmiany tym razem raczej wyłącznie na lepsze ale równie dobrze nowa wersja 1.13 mogłaby się nazywać 1.12.10  
+
 
 
