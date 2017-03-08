@@ -4,7 +4,9 @@ Od czerwca zeszłego roku kiedy to pojawiła się wersja 1.12 minęło już spor
 
 W niniejszym artykule będę opisywał zarówno 1.13 (styczeń 2017) jak i nowość z lutego 1.13.1 która wprowadziła kolejne zmiany. 
 
-Warto od razu zaznaczyć że w momencie pisania tego tekstu dokonano podziału dockera na enterprise edition i community edition. Dodatkowo wraz z tym podziałem powołano nowy schemat nazewnictwa oparty o miesiąc/rok tak więc obecnie mamy już 17.03 (CE realesowane miesięcznie zaś EE kwartalnie). O różnicach między 17.03 a 1.13 nie będę pisał bo ich nie znalazłem. Na moje oko wersja 17.03 to z grubsza (z technicznego punktu widzenia) coś w stylu 1.13.2 - zawiera bugfixy do 1.13 i 1.13.1, jej API jest zgodne z API z 1.13 , ma zaimplementowane wszystkie nowe polecenia z 1.13 i zachowuje się identycznie. Oczywiście jeśli jednak znajdę w ciągu najbliższych dni jakąś róznicę to dorzucę info w komentarzach. 
+Warto od razu zaznaczyć że w momencie pisania tego tekstu dokonano podziału dockera na enterprise edition i community edition. Dodatkowo wraz z tym podziałem powołano nowy schemat nazewnictwa oparty o miesiąc/rok tak więc obecnie mamy już 17.03 (CE realesowane miesięcznie zaś EE kwartalnie). O różnicach między 17.03 a 1.13 nie będę pisał bo ich nie znalazłem. Na moje oko wersja 17.03 to z grubsza (z technicznego punktu widzenia) coś w stylu 1.13.2 - zawiera bugfixy do 1.13 i 1.13.1, jej API jest zgodne z API z 1.13 , ma zaimplementowane wszystkie nowe polecenia z 1.13 i zachowuje się identycznie. 
+
+Oczywiście jeśli jednak coś znajdę co różni te wersje to dorzucę stosowne info w komentarzach. 
 
 Wróćmy zatem do zmian technicznych w 1.13 bo te interesują nas najbardziej. 
 Aby korzystać z ficzerów jakie opisuję bardzo często trzeba włączyć tryb experimental dockera. Warto od razu zauważyć że od 1.13 docker wbudował obydwie wersje (stable i experimental) w jedną binarkę 
@@ -43,8 +45,7 @@ Server:
 
 ## Docker service logs
 
-To jedna z pierwszych nowości jakie omówimy , czy jej wprowadzenie było niezbędne można dyskutować - zawsze można było zainstalować przecież logspouta w trybie swarm global osiągając ten sam efekt. Docker słynie jednak z zastępowania rozwiązań firm trzecich swoimi własnymi odpowiednikami (ubik?). 
-
+To jedna z pierwszych nowości jakie omówimy , czy jej wprowadzenie było niezbędne można dyskutować - zawsze można było zainstalować przecież logspouta w trybie swarm global osiągając ten sam efekt. Docker słynie jednak z zastępowania rozwiązań firm trzecich swoimi własnymi odpowiednikami. Podobnie zresztą będzie przy metrics które robią to samo co cAdvisor. 
 
 
 
