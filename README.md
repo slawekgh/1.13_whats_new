@@ -1,13 +1,14 @@
 # 1.13_whats_new
 
-Od czerwca zeszłego roku minęło już sporo czasu więc ekipa z Dockera postanowiła wydać kolejną już wersję - 1.13
+Od czerwca zeszłego roku kiedy to pojawiła się wersja 1.12 minęło już sporo czasu, więc ekipa z Dockera postanowiła wydać kolejną już wersję - 1.13
 
 W niniejszym artykule będę opisywał zarówno 1.13 (styczeń 2017) jak i nowość z lutego 1.13.1 która wprowadziła kolejne zmiany. 
 
-W momencie wypuszczania niniejszego artykułu dokonano podziału na enterprise edition i community edition a wraz z tym podziałem powołano nowy schemat nazewnictwa oparty o miesiąc/rok tak więc obecnie mamy już 17.03 (CE realesowane miesięcznie zaś EE kwartalnie) 
+Warto od razu zaznaczyć że w momencie pisania tego tekstu dokonano podziału dockera na enterprise edition i community edition. Dodatkowo wraz z tym podziałem powołano nowy schemat nazewnictwa oparty o miesiąc/rok tak więc obecnie mamy już 17.03 (CE realesowane miesięcznie zaś EE kwartalnie). O różnicach między 17.03 a 1.13 nie będę pisał bo ich nie znalazłem. Na moje oko wersja 17.03 to z grubsza (z technicznego punktu widzenia) coś w stylu 1.13.2 - zawiera bugfixy do 1.13 i 1.13.1, jej API jest zgodne z API z 1.13 , ma zaimplementowane wszystkie nowe polecenia z 1.13 i zachowuje się identycznie. Oczywiście jeśli jednak znajdę w ciągu najbliższych dni jakąś róznicę to dorzucę info w komentarzach. 
 
-Wróćmy jednak do zmian technicznych bo te interesują nas najbardziej. 
-Aby korzystać z ficzerów jakie opisuję bardzo często trzeba włączyć tryb experimental. Warto od razu zauważyć że od 1.13 docker wbudował obydwie wersje (stable i experimental) w jedną binarkę 
+Wróćmy zatem do zmian technicznych w 1.13 bo te interesują nas najbardziej. 
+Aby korzystać z ficzerów jakie opisuję bardzo często trzeba włączyć tryb experimental dockera. Warto od razu zauważyć że od 1.13 docker wbudował obydwie wersje (stable i experimental) w jedną binarkę 
+
 Aby nie dzielić nowości z 1.13 na experimental i stable od razu zmieniamy wywołanie docker demona:
 
 ```
