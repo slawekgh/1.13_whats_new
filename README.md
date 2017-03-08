@@ -566,9 +566,7 @@ Wprowadzamy
 - update parallelism (czyli update nie na wszystkich kontenerach na raz ale w paczkach po 2 sztuki) 
 - dependency między serwisami swarma w naszym stacku (najpierw registry, potem usługa web)
 - private registry jako swarm service - ale na wskazanym node (master)
-- celem uniknięcia używania flagi --insecure-registry przy ExecStart dla demona dockera będziemy świadczyc repo na każdym węźle swarma - ale będzie to jedno 
-
-repo, tyle że mapowane po portach 
+- celem uniknięcia używania flagi --insecure-registry przy ExecStart dla demona dockera będziemy świadczyc repo na każdym węźle swarma - ale będzie to jedno repo, tyle że mapowane po portach 
 - Nasz stack zdefiniuje 2 usługi swarma, będą one komunikować się w jednej sieci typu overlay (prywatnej) 
 
 
@@ -577,8 +575,9 @@ Podczas testów wygodnie obserwować zachowanie swarma za pomocą mano-marks-swa
 ```
 docker run -it -d -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock manomarks/visualizer
 ```
+I wchodzimy przeglądarką na 8080 na swarm-master. 
 
-Oto plik docker-compose.yml w drugiej odsłonie:
+A oto plik docker-compose.yml w drugiej odsłonie:
 
 
 ```
@@ -610,12 +609,11 @@ services:
 ```
 
 
-Jak widać nowe argumenty (te do swarma) pojawiają się głównie w sekcji deploy (ogólnie ta sekcja może być uznana za pojemnik na opcje swarma) 
-Na dole pliku YML pojawia się czasem lista sieci dla stacku. Jesli ich nie podamy swarm zbuduje sieć defaultową (nazwa-stacka_default) 
+Jak widać nowe argumenty (te do swarma) pojawiają się głównie w sekcji deploy (ogólnie ta sekcja może być uznana za pojemnik na opcje swarma). 
+Na dole pliku YML pojawia się czasem lista sieci dla stacku - jeśli ich nie podamy swarm zbuduje sieć defaultową (nazwa-stacka_default). 
 
 
-
-Deployment stacka poleceniem:
+Wykonujemy deployment stacka poleceniem:
 
 ```
 # docker stack deploy --compose-file ./docker-compose.yml stack_03
@@ -654,8 +652,7 @@ vl51n9mu5cnr  stack_03_www01.3  apacz01  cent503  Running        Running 7 minut
 iuxb28u32i56  stack_03_www01.4  apacz01  cent502  Running        Running 7 minutes ago         
 ```
 
-Powstał 1 stack składający się z 2 usług swarma.  
-Jak widać Swarm zrobił dystrybucję usługi webowej na 3 węzły zaś Registry trafiło tak jak chcieliśmy na node-master.
+Powstał 1 stack składający się z 2 usług swarma - jak widać Swarm zrobił dystrybucję usługi webowej na 3 węzły zaś Registry trafiło tak jak chcieliśmy na node-master.
 
 
 Zaraz po starcie powyższego stacka tworzymy (na swarm-master lub dowolnym innym węźle) 2 nowe obrazy zwracające poza hostname kolejne rewizje (2 i 3) 
@@ -687,8 +684,8 @@ docker tag apacz03 127.0.0.1:5000/apacz03
 ```
 
 
-po postawieniu stack_03 mamy już registry więc można wykonać push (x 3) obrazów  (na dowolnym węźle tam gdzie mamy je w lokalnym repo IMG) 
-registry słucha na 5000 na każdym węźle więc nie musimy używać flagi --insecure-registry przy starcie demona dockera:
+Po postawieniu stack_03 mamy już registry więc można wykonać push (x 3) obrazów - i to w dodatku na dowolnym węźle tam gdzie mamy je w lokalnym repo obrazów. 
+Registry słucha na 5000 na każdym węźle więc nie musimy używać flagi --insecure-registry przy starcie demona dockera:
 
 ```
 docker push 127.0.0.1:5000/apacz01
@@ -699,12 +696,13 @@ docker push 127.0.0.1:5000/apacz03
 
 pozostaje wykonać update jednej z usług stacka nowym obrazem 
 
-1. sprawdzamy na dowolnym węźle że działa load-balancing i zwracana rewizja = 1 
+W tym celu sprawdzamy na dowolnym węźle że działa load-balancing i zwracana jest via WWW rewizja = 1 
+
 ```
 curl 0:9004 
 ```
 
-2. update stacka nowym obrazem:
+Następnie wykonujemy update stacka nowym obrazem:
 
  a) modyfikacja w pliku docker-compose.yml - w sekcji image zmieniamy IMG i replicas:
 
@@ -725,13 +723,13 @@ curl 0:9004
 ```
 
 
-3. Test via curl 0:9004 - działa przez pewien czas i stara i nowa usługa, po pewnym czasie już tylko nowa 
+Wykonujemy ponownie test via curl 0:9004 - działa przez pewien czas i stara i nowa usługa, po pewnym czasie już tylko nowa.
 
-jak widać z curla i na mano-marks usługi zmieniają obraz w sposób w jaki zdefiniowaliśmy - czyli nie wszystkie naraz i z zadanym przez nas odstępem 
+Jak widać z outputu zwracanego przez curla i na GUI mano-marks usługi zmieniają obraz w sposób w jaki zdefiniowaliśmy - czyli nie wszystkie naraz i z zadanym przez nas odstępem. 
 
 
 
-4. na koniec Listing kontenerów pracujących w stacku:
+Na koniec wykonujemy listing kontenerów pracujących w stacku:
 
 ```
 # docker stack ps stack_03 
@@ -754,9 +752,9 @@ y5lzv3dpa40i  stack_03_www01.4      127.0.0.1:5000/apacz02:latest  cent502  Runn
 ```
 
 
-jak widać swarm podmienił wszystkie obrazy pracujące w stacku dla service www01
+Jak widać swarm podmienił wszystkie obrazy pracujące w stacku dla service www01
 
-kolejna podmiana i deploy:
+A zatem zróbmy kolejną podmianę IMG i deploy:
 
 ```
 # cat  docker-compose.yml
@@ -785,4 +783,6 @@ i1p1t0btoadq   \_ stack_03_www01.3  127.0.0.1:5000/apacz02:latest  cent503  Shut
 wbx7qfy0ortl  stack_03_www01.4      127.0.0.1:5000/apacz03:latest  cent502  Running        Running 18 seconds ago                                         
 y5lzv3dpa40i   \_ stack_03_www01.4  127.0.0.1:5000/apacz02:latest  cent502  Shutdown       Shutdown 18 seconds ago                                        
 ```
+
+Jak widać wszystko zgodnie z naszymi założeniami. 
 
