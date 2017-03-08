@@ -489,7 +489,7 @@ services:
 
 
 
-robimy deploy stacka nową metodą:
+robimy deploy stacka nową metodą - czyli wprost z pliku docker-compose:
 
 ```
 # docker stack deploy --compose-file docker-compose.yml stack_01
@@ -559,4 +559,230 @@ Removing service stack_01_web04
 Removing network stack_01_default
 ```
 
+### Teraz zróbmy coś bardziej skomplikowanego 
+
+Wprowadzamy 
+- rolling update (a la Blue-Green deployment)
+- update parallelism (czyli update nie na wszystkich kontenerach na raz ale w paczkach po 2 sztuki) 
+- dependency między serwisami swarma w naszym stacku (najpierw registry, potem usługa web)
+- private registry jako swarm service - ale na wskazanym node (master)
+- celem uniknięcia używania flagi --insecure-registry przy ExecStart dla demona dockera będziemy świadczyc repo na każdym węźle swarma - ale będzie to jedno 
+
+repo, tyle że mapowane po portach 
+- Nasz stack zdefiniuje 2 usługi swarma, będą one komunikować się w jednej sieci typu overlay (prywatnej) 
+
+
+Podczas testów wygodnie obserwować zachowanie swarma za pomocą mano-marks-swarm-visualizera - na masterze uruchamiamy zatem:
+
+```
+docker run -it -d -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock manomarks/visualizer
+```
+
+Oto plik docker-compose.yml w drugiej odsłonie:
+
+
+```
+version: "3"
+
+services:
+
+  www01:
+    image: apacz01
+    ports:
+      - "9004:80"
+    depends_on:
+      - registry
+    deploy:
+      replicas: 4
+      update_config:
+        parallelism: 1
+        delay: 5s
+
+
+  registry:
+    image: registry:2
+    ports:
+      - "5000:5000"
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+```
+
+
+Jak widać nowe argumenty (te do swarma) pojawiają się głównie w sekcji deploy (ogólnie ta sekcja może być uznana za pojemnik na opcje swarma) 
+Na dole pliku YML pojawia się czasem lista sieci dla stacku. Jesli ich nie podamy swarm zbuduje sieć defaultową (nazwa-stacka_default) 
+
+
+
+Deployment stacka poleceniem:
+
+```
+# docker stack deploy --compose-file ./docker-compose.yml stack_03
+Creating network stack_03_default
+Creating service stack_03_www01
+Creating service stack_03_registry
+```
+
+weryfikacja że wszystko uruchomiło się poprawnie :
+
+```
+# docker stack ls
+NAME      SERVICES
+stack_03  2
+
+# docker stack ps stack_03 
+ID            NAME                 IMAGE       NODE     DESIRED STATE  CURRENT STATE          ERROR  PORTS
+z9u4jlzd35rc  stack_03_registry.1  registry:2  cent501  Running        Running 7 minutes ago         
+nlhwvig7f7ha  stack_03_www01.1     apacz01     cent501  Running        Running 7 minutes ago         
+dmuwnkfdxlku  stack_03_www01.2     apacz01     cent503  Running        Running 7 minutes ago         
+vl51n9mu5cnr  stack_03_www01.3     apacz01     cent503  Running        Running 7 minutes ago         
+iuxb28u32i56  stack_03_www01.4     apacz01     cent502  Running        Running 7 minutes ago         
+
+
+# docker service  ls
+ID            NAME               MODE        REPLICAS  IMAGE
+vv69mtd0iif8  stack_03_registry  replicated  1/1       registry:2
+ytcdlg22ghtq  stack_03_www01     replicated  4/4       apacz01
+
+
+# docker service  ps stack_03_www01
+ID            NAME              IMAGE    NODE     DESIRED STATE  CURRENT STATE          ERROR  PORTS
+nlhwvig7f7ha  stack_03_www01.1  apacz01  cent501  Running        Running 7 minutes ago         
+dmuwnkfdxlku  stack_03_www01.2  apacz01  cent503  Running        Running 7 minutes ago         
+vl51n9mu5cnr  stack_03_www01.3  apacz01  cent503  Running        Running 7 minutes ago         
+iuxb28u32i56  stack_03_www01.4  apacz01  cent502  Running        Running 7 minutes ago         
+```
+
+Powstał 1 stack składający się z 2 usług swarma.  
+Jak widać Swarm zrobił dystrybucję usługi webowej na 3 węzły zaś Registry trafiło tak jak chcieliśmy na node-master.
+
+
+Zaraz po starcie powyższego stacka tworzymy (na swarm-master lub dowolnym innym węźle) 2 nowe obrazy zwracające poza hostname kolejne rewizje (2 i 3) 
+Tym razem z racji posiadania centralnego registry nie musimy ich już dystrybuować na pozostałe węzły via scp itd.
+
+```
+FROM ubuntu:14.04
+RUN apt-get -y update && apt-get install -y apache2 && apt-get install -y dnsutils && apt-get install -y curl
+CMD apachectl start && echo 2 > /var/www/html/index.html && hostname >> /var/www/html/index.html ; tail -f /dev/null
+
+
+docker build -t apacz02 .
+
+
+FROM ubuntu:14.04
+RUN apt-get -y update && apt-get install -y apache2 && apt-get install -y dnsutils && apt-get install -y curl
+CMD apachectl start && echo 3 > /var/www/html/index.html && hostname >> /var/www/html/index.html ; tail -f /dev/null
+
+
+docker build -t apacz03 .
+```
+
+tagujemy wszystkie 3 obrazy (apacz01 , 02 i 03) 
+
+```
+docker tag apacz01 127.0.0.1:5000/apacz01
+docker tag apacz02 127.0.0.1:5000/apacz02
+docker tag apacz03 127.0.0.1:5000/apacz03
+```
+
+
+po postawieniu stack_03 mamy już registry więc można wykonać push (x 3) obrazów  (na dowolnym węźle tam gdzie mamy je w lokalnym repo IMG) 
+registry słucha na 5000 na każdym węźle więc nie musimy używać flagi --insecure-registry przy starcie demona dockera:
+
+```
+docker push 127.0.0.1:5000/apacz01
+docker push 127.0.0.1:5000/apacz02
+docker push 127.0.0.1:5000/apacz03
+```
+
+
+pozostaje wykonać update jednej z usług stacka nowym obrazem 
+
+1. sprawdzamy na dowolnym węźle że działa load-balancing i zwracana rewizja = 1 
+```
+curl 0:9004 
+```
+
+2. update stacka nowym obrazem:
+
+ a) modyfikacja w pliku docker-compose.yml - w sekcji image zmieniamy IMG i replicas:
+
+```
+[...]
+ www01:
+    image: 127.0.0.1:5000/apacz02
+    ports:
+      - "9004:80"
+[...]
+```
+  
+  b) stack update:
+```
+      # docker stack deploy --compose-file docker-compose.yml stack_03
+      Updating service stack_03_web04 (id: 8l7l2ap8iiswpg4oz97t5f11c)
+      Updating service stack_03_registry (id: ny0wlhndgy3chreskkpscezmk)
+```
+
+
+3. Test via curl 0:9004 - działa przez pewien czas i stara i nowa usługa, po pewnym czasie już tylko nowa 
+
+jak widać z curla i na mano-marks usługi zmieniają obraz w sposób w jaki zdefiniowaliśmy - czyli nie wszystkie naraz i z zadanym przez nas odstępem 
+
+
+
+4. na koniec Listing kontenerów pracujących w stacku:
+
+```
+# docker stack ps stack_03 
+ID            NAME                  IMAGE                          NODE     DESIRED STATE  CURRENT STATE                ERROR                             
+
+PORTS
+trw6gnedkc0y  stack_03_registry.1   registry:2                     cent501  Running        Running 2 minutes ago                                          
+
+q2vlrrk63e8g  stack_03_www01.1      127.0.0.1:5000/apacz02:latest  cent501  Running        Running 26 seconds ago                                         
+ss128knv97rv  stack_03_www01.1      apacz01                        cent501  Shutdown       Shutdown 27 seconds ago                                        
+
+i1p1t0btoadq  stack_03_www01.3      127.0.0.1:5000/apacz02:latest  cent503  Running        Running 9 seconds ago                                          
+x8vn0zx5yc46   \_ stack_03_www01.3  apacz01                        cent503  Shutdown       Shutdown 10 seconds ago                                        
+
+y3wiimgv5fd0  stack_03_www01.2      127.0.0.1:5000/apacz02:latest  cent503  Running        Running 43 seconds ago                                         
+jfxc5wisyit0   \_ stack_03_www01.2  apacz01                        cent503  Shutdown       Shutdown 48 seconds ago                                        
+
+y5lzv3dpa40i  stack_03_www01.4      127.0.0.1:5000/apacz02:latest  cent502  Running        Running about a minute ago                                     
+2i4u5rje4wvi   \_ stack_03_www01.4  apacz01                        cent502  Shutdown       Shutdown about a minute ago                                    
+```
+
+
+jak widać swarm podmienił wszystkie obrazy pracujące w stacku dla service www01
+
+kolejna podmiana i deploy:
+
+```
+# cat  docker-compose.yml
+[...]
+  www01:
+    image: 127.0.0.1:5000/apacz03
+    
+docker stack deploy --compose-file docker-compose.yml stack_03
+```
+
+weryfikacja:
+
+```
+# docker stack ps stack_03 
+ID            NAME                  IMAGE                          NODE     DESIRED STATE  CURRENT STATE                ERROR                             
+
+PORTS
+trw6gnedkc0y  stack_03_registry.1   registry:2                     cent501  Running        Running 10 minutes ago                                         
+
+ksdm2ssq2rcj  stack_03_www01.1      127.0.0.1:5000/apacz03:latest  cent501  Running        Running 52 seconds ago                                         
+q2vlrrk63e8g   \_ stack_03_www01.1  127.0.0.1:5000/apacz02:latest  cent501  Shutdown       Shutdown 52 seconds ago                                        
+kdlxek58ehpa  stack_03_www01.2      127.0.0.1:5000/apacz03:latest  cent503  Running        Running 35 seconds ago                                         
+y3wiimgv5fd0   \_ stack_03_www01.2  127.0.0.1:5000/apacz02:latest  cent503  Shutdown       Shutdown 35 seconds ago                                        
+ztcv0i8p8e5u  stack_03_www01.3      127.0.0.1:5000/apacz03:latest  cent503  Running        Running about a minute ago                                     
+i1p1t0btoadq   \_ stack_03_www01.3  127.0.0.1:5000/apacz02:latest  cent503  Shutdown       Shutdown about a minute ago                                    
+wbx7qfy0ortl  stack_03_www01.4      127.0.0.1:5000/apacz03:latest  cent502  Running        Running 18 seconds ago                                         
+y5lzv3dpa40i   \_ stack_03_www01.4  127.0.0.1:5000/apacz02:latest  cent502  Shutdown       Shutdown 18 seconds ago                                        
+```
 
