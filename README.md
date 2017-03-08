@@ -725,7 +725,7 @@ Następnie wykonujemy update stacka nowym obrazem:
 
 Wykonujemy ponownie test via curl 0:9004 - działa przez pewien czas i stara i nowa usługa, po pewnym czasie już tylko nowa.
 
-Jak widać z outputu zwracanego przez curla i na GUI mano-marks usługi zmieniają obraz w sposób w jaki zdefiniowaliśmy - czyli nie wszystkie naraz i z zadanym przez nas odstępem. Najpierw update wykonywany jest na pierwszym kontenerze, dopiero jak się skończy to na kolejnym. Dzięki temu nasza usługa biznesowa cały czas jest świadczona. Takie zachowanie wymuszane jest poprzez parametry update parallelism = 1 (czyli update na tylko jednym kontenerze z 4) oraz z odstępem delay = 5s. Dla przypomnienia parametry te pochodzą z pliku docker-compose.yml dla naszego stacka
+Jak widać z outputu zwracanego przez curla i na GUI mano-marks usługi zmieniają obraz w sposób w jaki zdefiniowaliśmy - czyli nie wszystkie naraz i z zadanym przez nas odstępem. Najpierw update wykonywany jest na pierwszym kontenerze, dopiero jak się skończy to na kolejnym. Dzięki temu nasza usługa biznesowa cały czas jest świadczona. Takie zachowanie wymuszane jest poprzez parametry update parallelism = 1 (czyli update na tylko jednym kontenerze z 4 pracujących) oraz z odstępem delay = 5s. Dla przypomnienia parametry te pochodzą z pliku docker-compose.yml dla naszego stacka
 
 
 
