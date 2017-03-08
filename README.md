@@ -784,5 +784,64 @@ wbx7qfy0ortl  stack_03_www01.4      127.0.0.1:5000/apacz03:latest  cent502  Runn
 y5lzv3dpa40i   \_ stack_03_www01.4  127.0.0.1:5000/apacz02:latest  cent502  Shutdown       Shutdown 18 seconds ago                                        
 ```
 
-Jak widać wszystko zgodnie z naszymi założeniami. 
+Jak widać wszystko zgodnie z naszymi założeniami - swarm podmienił IMG dla service z rewizji 2 na rewizję 3. Podczas update można było zaoserwować że update wykonywany jest porcjami w paczkach po 2 sztuki. 
+
+## DOCKER SECRETS
+
+Secrets to wrażliwe dane konfiguracyjne takie jak m.in.:
+
+- hasła do baz danych 
+- klucze SSH
+- certyfikaty TLS 
+- tokeny do REST-API 
+- hasła do wszelakiej komunikacji międzysystemowej 
+- być może nawet hasła do SSH 
+- itd itp 
+
+w skrócie i dla uproszczenia możemy wszystkie powyższe dane traktować jako hasła i nazywać je hasłami. 
+
+
+Oto wszystkie znane mi metody trzymania danych wrażliwych w świecie dockera:
+
+1. na etapie budowania obrazu 
+
+niebezpiecznie prosty ale dosyć słaby pomysł:
+- zmiana hasła oznacza zmianę pracującego obrazu (czyli wymianę kontenerów) 
+- nie da się opublikowac obrazu (bo w środku jest nasze ważne hasło) 
+- nie da się opublikować Dockerfile (bo widać nasze hasło) 
+
+
+2. na etapie uruchamiania kontenera - zmiennymi środowiskowymi 
+
+zaletą jest zgodność z 12-factors app ale niestety hasła widać w docker ps i docker inspect 
+dostęp do zmiennych ENV mają kontenery zlinkowane i child-procesy itd itp 
+
+
+3. na etapie uruchamiania kontenera - montowaniem volumenów typu "/hasła"
+
+niestety tutaj trzeba mieć na każdym węźle swarma przygotowane aktualne dane w filesystemie "/hasła"
+trzeba mieć jakiś mechanizm dbający o aktualność i synchronizację danych w tym katalogu (scaleio? rexray? gpfs? gluster? nfs? świętej pamięci flocker? ) 
+zarządzanie zawartością katalogu "/hasła" może (ale nie musi) okazać się trudnym procesem 
+
+
+4. po uruchomieniu kontenera rekonfigurując środowiska jakimś automatem (np. ansible) 
+
+rozwiązanie działa tylko wtedy gdy procesy z sekcji CMD Dockerfile umieją działać bez haseł. 
+mówiąc prościej - trudno wymagać od mysql aby wystartował i trzymał swoim procesem (mysqld) swój kontener przy życiu skoro hasło otrzyma od nas dopiero na etapie późniejszym. To rozwiązanie jest zatem nieco dziwne i sprawdza się tylko w niektórych  przypadkach ale jak już się sprawdzi to jest w miarę ok. 
+
+
+5. Secret Store (np Vault od Hashicorp albo Keywiz) 
+
+W sumie mimo wielu rekomendacji na rynku nie zdążyłem zabrać się za Vaulta bo nagle pojawił się docker secrets :-) 
+
+
+6. Docker secrets 
+
+No i tu dochodzimy do sedna - Docker 1.13 wprowadza jedną z najbardziej wyczekiwanych funkcjonalności - zarządzanie hasłami (secrets Management) . Docker miłościwie pozwala nam trzymać nie tylko hasła ale i dane binarne (do 500kb) i różne stringi konfiguracyjne. 
+
+Mechanizm Docker secrets jest jak na razie dostępny tylko w Swarmie więc jesli chcemy uruchamiać zwykłe kontenery trzebe je przekonwertować na usługi swarma. 
+
+A teraz w wielkim skrócie jak to działa:
+Jeśli jakiemuś serwisowi nadamy dostęp do hasła to jego niezaszyfrowana postać jest dostępna w każdym kontenerze w pliku /run/secrets/<secret_name>.  Warto podkreślić że /run/secrets to filesystem tmpfsowy, rezyduje w RAM (co będzie ważne przy usuwaniu haseł) .
+
 
