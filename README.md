@@ -444,16 +444,14 @@ Jak pamiętamy docker-compose mógł obsługiwać swarma ale tylko do wersji 1.1
 Wraz z nadejściem swarm-mode (swarm wbudowany, od wersji 1.12) docker-compose przestał być wspieraną formą deploymentu usług na swarm i wg niektórych źródeł zaczał mieć nawet status depreciated. Jako następca i alternatywa dla docker-compose w środowisku swarm zaproponowano format DAB (“Distributed Application Bundle”)
 
 Jednocześnie wprowadzono pojęcie swarm docker stack. Celem usystematyzowania przypomnijmy jego definicję i funkcję:
-Stack to zbiór usług swarma składających się na środowisko aplikacyjne. 
-Stack umożliwia automatyzację instalacji wielu powiązanych ze sobą (zależnościami) serwisów swarma. 
+1. Stack to zbiór usług swarma składających się na środowisko aplikacyjne. 
+2. Stack umożliwia automatyzację instalacji wielu powiązanych ze sobą (zależnościami) serwisów swarma. 
 
 W hierarachi od dołu najpierw zatem mamy kontenery, potem swarm-service (jako zbiór N kontenerów rozpędzonych z jednego obrazu) a następnie na szczycie jest stack który z kolei jest zbiorem serwisów. 
 
-I teraz najważniejsze - Docker w 1.13 znacząco uproscił deployment wielowarstowych środowisk - teraz już nie trzeba używać do tego formatu DAB (który nie do końca wiadomo jaką ma przyszłość) ale wystrarczy do tego ceu używać starego formatu docker-compose.
+I teraz najważniejsze - Docker w 1.13 znacząco uprościł deployment wielowarstowych środowisk - teraz już nie trzeba używać do tego formatu DAB (który nie do końca wiadomo jaką ma przyszłość) ale wystarczy do tego ceu używać starego i znanego docker-compose. 
 
-Jest to jeden z najważniejszych i kluczowych ficzerów w 1.13. 
-
-Dla niektórych wręcz jest to triumfalny i wyczekiwany powrót starego i lubianego formatu docker-compose.yml. Niektórzy idą jeszcze dalej ze spekulacjami i wieszczą naturalną śmierć formatu DAB.
+Jest to jeden z najważniejszych i kluczowych ficzerów w 1.13. Dla niektórych wręcz jest to triumfalny i wyczekiwany powrót starego i lubianego formatu docker-compose.yml. Niektórzy idą jeszcze dalej ze spekulacjami i wieszczą naturalną śmierć formatu DAB.
 
 Celem przeprowadzenia LABu tworzymy obraz z którego będziemy rozpędzać kontenery serwujące swój numer rewizji i hostname na porcie 80.
 
