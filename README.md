@@ -310,7 +310,7 @@ engine_daemon_container_actions_seconds_bucket{action="changes",le="0.1"} 1
 engine_daemon_container_actions_seconds_bucket{action="changes",le="0.25"} 1
 ```
 
-Czy to zagrosi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jest jego ojciec i że ten ojciec z dockerem się chyba nie lubi lub za chwilę pokaże konkurencyjne kontenery :-) 
+Czy to zagrozi cAdvisorovi ? No nie sądzę, zwłaszcza jak sie popatrzy kim jest jego ojciec i że ten ojciec z dockerem się chyba nie lubi lub za chwilę pokaże konkurencyjne kontenery :-) 
 
 
 
@@ -452,7 +452,7 @@ Jednocześnie wprowadzono pojęcie swarm docker stack. Celem usystematyzowania p
 
 W hierarachi od dołu najpierw zatem mamy kontenery, potem swarm-service (jako zbiór N kontenerów rozpędzonych z jednego obrazu) a następnie na szczycie jest stack który z kolei jest zbiorem serwisów. 
 
-I teraz najważniejsze - Docker w 1.13 znacząco uprościł deployment wielowarstowych środowisk - teraz już nie trzeba używać do tego formatu DAB (który nie do końca wiadomo jaką ma przyszłość) ale wystarczy do tego ceu używać starego i znanego docker-compose. 
+I teraz najważniejsze - Docker w 1.13 znacząco uprościł deployment wielowarstowych środowisk - teraz już nie trzeba używać do tego formatu DAB (który nie do końca wiadomo jaką ma przyszłość) ale wystarczy do tego celu używać starego i znanego docker-compose. 
 
 Jest to jeden z najważniejszych i kluczowych ficzerów w 1.13. Dla niektórych wręcz jest to triumfalny i wyczekiwany powrót starego i lubianego formatu docker-compose.yml. Niektórzy idą jeszcze dalej ze spekulacjami i wieszczą naturalną śmierć formatu DAB.
 
